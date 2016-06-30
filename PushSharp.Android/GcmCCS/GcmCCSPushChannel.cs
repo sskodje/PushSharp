@@ -33,10 +33,11 @@ namespace PushSharp.Android
         private static String SERVER_URL = "gcm-preprod.googleapis.com";
         private static int PORT = 5236;
 #else
-                private static String SERVER_URL = "gcm-xmpp.googleapis.com";
+        private static String SERVER_URL = "gcm-xmpp.googleapis.com";
         private static int PORT = 5235;
 #endif
         private XmppClientConnection _xmpp;
+        private XmppClientConnection _drainingXmpp;
         private GcmCCSPushChannelSettings _gcmSettings;
         private ConcurrentQueue<INotification> _notificationQueue;
         private Dictionary<string, SendNotificationCallbackDelegate> _callbacks;
@@ -89,9 +90,13 @@ namespace PushSharp.Android
             _keepConnectedTimer.AutoReset = false;
             _keepConnectedTimer.Start();
         }
-
+        int i = 0;
         void _keepConnectedTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
+            _keepConnectedTimer.Interval = 1000;
+            if (i == 10 || i == 30)
+                ProcessControlMessage("CONNECTION_DRAINING");
+            i++;
             var timer = (System.Timers.Timer)sender;
             timer.Stop();
             try
@@ -105,6 +110,7 @@ namespace PushSharp.Android
             {
                 timer.Start();
             }
+
         }
 
         private void Connect()
@@ -149,11 +155,8 @@ namespace PushSharp.Android
             catch (Exception ex)
             {
                 Log.Error("{0} - {1}", "Error in connecting to Google Gcm CCS", ex);
-                //  throw;
-            }
-            finally
-            {
                 _isConnecting = false;
+                //  throw;
             }
         }
 
@@ -214,9 +217,8 @@ namespace PushSharp.Android
             }
             catch (Exception e)
             {
-                Log.Error("{0}->{1}", "Failed to process packet", e);
+                Log.Error("{0}->{1}.", "Failed to process packet", e);
             }
-
         }
 
         private void SendAck(JObject jsonObject)
@@ -233,21 +235,6 @@ namespace PushSharp.Android
         {
             SendAck(jsonObject);
             //TODO: Handle message receipt
-
-            //JToken data = jsonObject.GetValue("data");
-            //String messageId = (string)data["original_message_id"];
-            //GcmCCSNotification notification = (GcmCCSNotification)_pendingNotifications[messageId];
-            //if (notification != null)
-            //{
-            //    SendNotificationCallbackDelegate callback = _callbacks[messageId];
-            //    callback(this, new SendNotificationResult(notification));
-
-            //    if (notification.RequestDeliveryReceipt.GetValueOrDefault(false) == true)
-            //    {
-            //        _callbacks.Remove(messageId);
-            //        _pendingNotifications.Remove(messageId);
-            //    }
-            //}
         }
 
         /**
@@ -340,9 +327,17 @@ namespace PushSharp.Android
         {
             Log.Info("handleControlMessage(): {0}", jsonObject);
             String controlType = (String)jsonObject["control_type"];
+            ProcessControlMessage(controlType);
+        }
+        private void ProcessControlMessage(string controlType)
+        {
             if ("CONNECTION_DRAINING".Equals(controlType))
             {
                 _connectionDraining = true;
+                _isConnected = false;
+                _drainingXmpp = _xmpp;
+
+                Connect();
             }
             else
             {
@@ -357,11 +352,21 @@ namespace PushSharp.Android
         }
         private void xmpp_OnClose(object sender)
         {
-            _isConnected = false;
+            if (sender == _drainingXmpp)
+            {
+                _drainingXmpp = null;
+            }
+            else
+                _isConnected = false;
+
+            _isConnecting = false;
+            Log.Info("XMPP connection to Google GCM disconnected");
         }
         void xmpp_OnBinded(object sender)
         {
+            _isConnecting = false;
             _isConnected = true;
+            Log.Info("XMPP connection to Google GCM connected");
         }
 
         static void xmpp_OnSocketError(object sender, Exception ex)
@@ -385,6 +390,11 @@ namespace PushSharp.Android
 
         public void SendNotification(INotification notification, SendNotificationCallbackDelegate callback)
         {
+            if (!_isConnected)
+            {
+                callback(this, new SendNotificationResult(notification, true));
+                return;
+            }
             try
             {
                 var msg = notification as GcmCCSNotification;

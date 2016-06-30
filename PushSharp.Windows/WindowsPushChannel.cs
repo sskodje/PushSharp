@@ -78,7 +78,6 @@ namespace PushSharp.Windows
                 case WindowsNotificationType.Badge:
                     wnsType = "wns/badge";
                     break;
-                case WindowsNotificationType.DeleteNotification:
                 case WindowsNotificationType.Toast:
                     wnsType = "wns/toast";
                     break;
@@ -87,17 +86,24 @@ namespace PushSharp.Windows
                     break;
             }
 
-            var request = (HttpWebRequest)HttpWebRequest.Create(winNotification.ChannelUri); // "https://notify.windows.com");
+            var request = (HttpWebRequest)HttpWebRequest.Create(winNotification.ChannelUri);
             if (winNotification.Type == WindowsNotificationType.DeleteNotification)
                 request.Method = "DELETE";
             else
                 request.Method = "POST";
-            request.Headers.Add("X-WNS-Type", wnsType);
-            request.Headers.Add("Authorization", string.Format("Bearer {0}", this.AccessToken));
-            request.ContentType = "text/xml";
 
+            if (winNotification.Type != WindowsNotificationType.DeleteNotification)
+                request.Headers.Add("X-WNS-Type", wnsType);
+
+            request.Headers.Add("Authorization", string.Format("Bearer {0}", this.AccessToken));
+
+            if (winNotification.Type != WindowsNotificationType.DeleteNotification)
+                request.ContentType = "text/xml";
             if (winNotification.Type == WindowsNotificationType.Raw)
                 request.ContentType = "application/octet-stream";
+
+
+
 
             if (winNotification.Type == WindowsNotificationType.Tile)
             {
@@ -139,6 +145,9 @@ namespace PushSharp.Windows
                 if (!string.IsNullOrEmpty(winNotification.NotificationGroup))
                     deleteArgs += string.Format(";group={0}", winNotification.NotificationGroup);
 
+                if (string.IsNullOrEmpty(winNotification.NotificationGroup) && string.IsNullOrEmpty(winNotification.NotificationTag))
+                    deleteArgs += ";all";
+
                 request.Headers.Add("X-WNS-Match", deleteArgs);
             }
 
@@ -156,15 +165,18 @@ namespace PushSharp.Windows
 
             //Microsoft recommends we disable expect-100 to improve latency
             request.ServicePoint.Expect100Continue = false;
+            if (winNotification.Type == WindowsNotificationType.DeleteNotification)
+                request.ContentLength = 0;
+            else
+            {
+                var payload = winNotification.PayloadToString();
+                var data = Encoding.UTF8.GetBytes(payload);
 
-            var payload = winNotification.PayloadToString();
-            var data = Encoding.UTF8.GetBytes(payload);
+                request.ContentLength = data.Length;
 
-            request.ContentLength = data.Length;
-
-            using (var rs = request.GetRequestStream())
-                rs.Write(data, 0, data.Length);
-
+                using (var rs = request.GetRequestStream())
+                    rs.Write(data, 0, data.Length);
+            }
             try
             {
                 request.BeginGetResponse(new AsyncCallback(getResponseCallback), new object[] { request, winNotification, callback });
@@ -172,9 +184,9 @@ namespace PushSharp.Windows
             catch (WebException wex)
             {
                 WindowsNotificationStatus status = null;
-                    //Handle different httpstatuses
-                    status = ParseStatus(wex.Response as HttpWebResponse, winNotification);
-                    HandleStatus(status, callback);
+                //Handle different httpstatuses
+                status = ParseStatus(wex.Response as HttpWebResponse, winNotification);
+                HandleStatus(status, callback);
             }
             catch (Exception ex)
             {
@@ -203,24 +215,19 @@ namespace PushSharp.Windows
             var callback = (SendNotificationCallbackDelegate)objs[2];
 
 
-            //try
-            //{
+            try
+            {
                 var resp = wr.EndGetResponse(asyncResult) as HttpWebResponse;
                 var status = ParseStatus(resp, winNotification);
                 HandleStatus(status, callback);
-            //}
-            //catch (Exception ex)
-            //{
-            //    Log.Error("{0}", ex);
-            //    HandleStatus(new WindowsNotificationStatus()
-            //    {
-            //        HttpStatus = HttpStatusCode.RequestTimeout,
-            //        DeviceConnectionStatus = WindowsDeviceConnectionStatus.Connected,
-            //        MessageID = "",
-            //        Notification = winNotification,
-            //        NotificationStatus = WindowsNotificationSendStatus.Dropped,
-            //    }, callback);
-            //}
+            }
+            catch (WebException wex)
+            {
+                WindowsNotificationStatus status = null;
+                //Handle different httpstatuses
+                status = ParseStatus(wex.Response as HttpWebResponse, winNotification);
+                HandleStatus(status, callback);
+            }
         }
 
 
@@ -239,6 +246,8 @@ namespace PushSharp.Windows
                     var wnsErrorDescription = resp.Headers["X-WNS-Error-Description"];
                     var wnsMsgId = resp.Headers["X-WNS-Msg-ID"];
                     var wnsNotificationStatus = resp.Headers["X-WNS-NotificationStatus"] ?? "";
+                    if (String.IsNullOrEmpty(wnsNotificationStatus))
+                        wnsNotificationStatus = resp.Headers["X-WNS-Status"] ?? "";
 
                     result.DebugTrace = wnsDebugTrace;
                     result.ErrorDescription = wnsErrorDescription;

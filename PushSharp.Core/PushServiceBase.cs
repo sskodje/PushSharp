@@ -347,9 +347,10 @@ namespace PushSharp.Core
                         sendTimeMeasurements.RemoveAt(0);
 
                     sendTimeMeasurements.RemoveAll(m => m.Timestamp < DateTime.UtcNow.AddSeconds(-30));
-
+                    if (sendTimeMeasurements.Count == 0)
+                        return TimeSpan.Zero;
                     var avg = from s in sendTimeMeasurements select s.Milliseconds;
-					
+
 	                try { return TimeSpan.FromMilliseconds(avg.Average()); }
                     catch { return TimeSpan.Zero; }
                 }
