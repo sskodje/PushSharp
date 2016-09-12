@@ -29,8 +29,8 @@ namespace PushSharp.Android
 
 		}
 
-        
-	}
+
+    }
 
 	public class GcmCCSPushChannelFactory : IPushChannelFactory
 	{

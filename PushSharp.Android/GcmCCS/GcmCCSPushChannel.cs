@@ -90,17 +90,21 @@ namespace PushSharp.Android
             _keepConnectedTimer.AutoReset = false;
             _keepConnectedTimer.Start();
         }
-        int i = 0;
+        //int i = 0;
         void _keepConnectedTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            _keepConnectedTimer.Interval = 1000;
-            if (i == 10 || i == 30)
-                ProcessControlMessage("CONNECTION_DRAINING");
-            i++;
             var timer = (System.Timers.Timer)sender;
             timer.Stop();
             try
             {
+                _keepConnectedTimer.Interval = 2000;
+
+//#if DEBUG
+                //if (i == 10 || i == 30)
+                //    ProcessControlMessage("CONNECTION_DRAINING");
+                //i++;
+//#endif
+
                 if (_isConnected || _isConnecting)
                     return;
                 Log.Info("{0}", "Reconnecting to Google GCM xmpp server");
@@ -118,7 +122,8 @@ namespace PushSharp.Android
             try
             {
                 _isConnecting = true;
-
+                if(_xmpp!= null)
+                    _xmpp.Close();
                 _xmpp = new XmppClientConnection
                 {
                     UseSSL = true,
@@ -336,7 +341,8 @@ namespace PushSharp.Android
                 _connectionDraining = true;
                 _isConnected = false;
                 _drainingXmpp = _xmpp;
-
+                _xmpp=null;
+                Log.Warning("XMPP Connection draining, reconnecting");
                 Connect();
             }
             else
@@ -371,21 +377,21 @@ namespace PushSharp.Android
 
         static void xmpp_OnSocketError(object sender, Exception ex)
         {
-            Log.Error("{0}", ex);
+            Log.Error("XMPP socket error - {0}", ex);
             return;
         }
         void xmpp_OnStreamError(object sender, Element e)
         {
-            Log.Error("{0}", e);
+            Log.Error("XMPP stream error - {0}", e);
         }
         static void OnAuthError(object sender, agsXMPP.Xml.Dom.Element e)
         {
-            Log.Error("{0}", e);
+            Log.Error("XMPP auth error - {0}", e);
         }
 
         static void OnError(object sender, Exception ex)
         {
-            Log.Error("{0}", ex);
+            Log.Error("XMPP error - {0}", ex);
         }
 
         public void SendNotification(INotification notification, SendNotificationCallbackDelegate callback)
