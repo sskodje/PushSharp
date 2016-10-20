@@ -254,7 +254,7 @@ namespace PushSharp.Android
             String from = (String)jsonObject["from"];
             String CanonicalRegistrationId = (String)jsonObject["registration_id"];
 
-            Log.Info("handleAckReceipt from {0},messageID: {1}", from, messageId);
+            Log.Debug("handleAckReceipt from {0},messageID: {1}", from, messageId);
             SendNotificationCallbackDelegate callback = _callbacks[messageId];
 
             GcmCCSNotification notification = (GcmCCSNotification)_pendingNotifications[messageId];
@@ -309,7 +309,7 @@ namespace PushSharp.Android
                     callback(this, new SendNotificationResult(notification, false, new GcmCCSMessageTransportException(String.Format("{0}: {1}", error, errorDescription), status)));
                     break;
             }
-            Log.Info("handleNackReceipt from {0},messageID: {1}", from, messageId);
+            Log.Debug("handleNackReceipt from {0},messageID: {1}", from, messageId);
 
             //callback(this, new SendNotificationResult(_pendingNotifications[messageId], true, new Exception("Nack received")));
             _callbacks.Remove(messageId);
@@ -330,7 +330,7 @@ namespace PushSharp.Android
 
         protected void handleControlMessage(JObject jsonObject)
         {
-            Log.Info("handleControlMessage(): {0}", jsonObject);
+            Log.Debug("handleControlMessage(): {0}", jsonObject);
             String controlType = (String)jsonObject["control_type"];
             ProcessControlMessage(controlType);
         }

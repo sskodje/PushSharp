@@ -29,7 +29,13 @@ namespace PushSharp.Android
 
 		}
 
-
+        public override bool BlockOnMessageResult
+        {
+            get
+            {
+                return false;
+            }
+        }
     }
 
 	public class GcmCCSPushChannelFactory : IPushChannelFactory

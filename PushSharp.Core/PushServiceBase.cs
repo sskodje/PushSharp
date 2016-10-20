@@ -89,7 +89,7 @@ namespace PushSharp.Core
             this.PushChannelFactory = pushChannelFactory;
             this.ServiceSettings = serviceSettings ?? new PushServiceSettings();
             this.ChannelSettings = channelSettings;
-
+            
             this.queuedNotifications = new NotificationQueue();
 
             scaleSync = 0;

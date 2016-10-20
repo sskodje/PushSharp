@@ -19,5 +19,9 @@ namespace PushSharp.Windows
 			get;
 			set;
 		}
-	}
+        public override string ToString()
+        {
+            return String.Format("WindowsNotificationSendFailureException: {0} - http status {1}",NotificationStatus?.ErrorDescription,NotificationStatus?.HttpStatus);
+        }
+    }
 }
