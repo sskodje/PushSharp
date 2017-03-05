@@ -166,7 +166,7 @@ namespace PushSharp.Windows
 
         public static WindowsToastNotification WithVersion(this WindowsToastNotification notification, int version = 1)
         {
-            notification.Visual.Version = version;
+           ((ToastVisual)notification.Visual).Version = version;
             return notification;
         }
 
@@ -203,6 +203,36 @@ namespace PushSharp.Windows
         public static WindowsToastNotification WithSuppressedPopup(this WindowsToastNotification notification, bool isSuppressed)
         {
             notification.SuppressPopup = isSuppressed;
+            return notification;
+        }
+        public static Windows10ToastNotification WithActions(this Windows10ToastNotification notification, ToastActions actions)
+        {
+            notification.Actions = actions;
+            return notification;
+        }
+        /// <summary>
+        /// One string of bold text on the first line, one string of regular text wrapped across the second and third lines. For more information and example screenshots of the various Toast Layouts see http://msdn.microsoft.com/en-us/library/windows/apps/hh761494.aspx
+        /// </summary>
+        public static Windows10ToastNotification AsGenericToast(this Windows10ToastNotification notification, List<string> texts, List<ToastImage> images=null, ToastActions actions = null, string language = null, string fallback = null, string baseUri = null, BrandingType? branding = null, bool? addImageQuery = null)
+        {
+            notification.Visual.Binding = new ToastBinding()
+            {
+                ToastTemplate = ToastNotificationTemplate.ToastGeneric,
+                Language = language,
+                Fallback = fallback,
+                BaseUri = baseUri,
+                Branding = branding,
+                AddImageQuery = addImageQuery
+            };
+            foreach(string txt in texts)
+            {
+                notification.Visual.Binding.Texts.Add(new ToastText() { Language = language, Text = txt });
+            }
+            foreach(ToastImage toastImage in images)
+            {
+                notification.Visual.Binding.Images.Add(toastImage);
+            }
+            notification.Actions = actions;
             return notification;
         }
 
@@ -271,7 +301,7 @@ namespace PushSharp.Windows
         /// </summary>
         public static WindowsToastNotification AsToastText04(this WindowsToastNotification notification, string boldTextLine1, string textLine2, string textLine3, string language = null, string fallback = null, BrandingType? branding = null)
         {
-            notification.Visual.Binding = new ToastBinding()
+           notification.Visual.Binding = new ToastBinding()
             {
                 ToastTemplate = ToastNotificationTemplate.ToastText04,
                 Language = language,

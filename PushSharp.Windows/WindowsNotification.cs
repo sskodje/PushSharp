@@ -231,6 +231,132 @@ namespace PushSharp.Windows
         }
     }
 
+    public class ToastInput
+    {
+        public string ID { get; set; }
+        public ToastActionInputType InputType { get; set; }
+        /// <summary>
+        /// Optional title
+        /// </summary>
+        public string Title { get; set; }
+        /// <summary>
+        /// Optional placeholder hint text
+        /// </summary>
+        public string PlaceHolderContent { get; set; }
+        /// <summary>
+        /// Optional default input text or selection id
+        /// </summary>
+        public string DefaultInput { get; set; }
+
+        public List<ToastSelection> Selections { get; set; }
+
+        public ToastInput(string id)
+        {
+            ID = id;
+        }
+
+        public XElement GenerateXmlElement()
+        {
+            var input = new XElement("input", new XAttribute("id", ID.ToString()));
+            if (!string.IsNullOrEmpty(Title))
+                input.Add(new XAttribute("title", XmlEncode(Title)));
+
+            if (!string.IsNullOrEmpty(PlaceHolderContent))
+                input.Add(new XAttribute("placeHolderContent", XmlEncode(PlaceHolderContent)));
+
+            if (!string.IsNullOrEmpty(DefaultInput))
+                input.Add(new XAttribute("defaultInput", XmlEncode(DefaultInput)));
+
+            input.Add(new XAttribute("type", InputType.ToString()));
+
+            if (Selections != null)
+            {
+                foreach (ToastSelection selection in Selections)
+                {
+                    input.Add(selection.GenerateXmlElement());
+                }
+            }
+
+            return input;
+        }
+
+        protected string XmlEncode(string text)
+        {
+            return System.Security.SecurityElement.Escape(text);
+        }
+    }
+
+    public class ToastSelection
+    {
+        string ID { get; set; }
+        string Content { get; set; }
+
+        public ToastSelection(string id)
+        {
+            ID = id;
+        }
+
+        public XElement GenerateXmlElement()
+        {
+            var selection = new XElement("selection", new XAttribute("id", ID.ToString()));
+            if (!string.IsNullOrEmpty(Content))
+                selection.Add(new XAttribute("content", XmlEncode(Content)));
+
+            return selection;
+        }
+
+        protected string XmlEncode(string text)
+        {
+            return System.Security.SecurityElement.Escape(text);
+        }
+    }
+
+    public class ToastAction
+    {
+        public string Content { get; set; }
+        public string Arguments { get; set; }
+        /// <summary>
+        /// Optionally set the activation type. foreground | background | protocol | system. Default is foreground.
+        /// </summary>
+        public ToastActivationType? ActivationType { get; set; }
+        /// <summary>
+        /// Optional image that is displayed inside the action button along with the text content.
+        /// </summary>
+        public string ImageUri { get; set; }
+        /// <summary>
+        /// This is specifically used for the quick reply scenario.
+        ///The value needs to be the id of the input element desired to be associated with.
+        ///In mobile and desktop, this will put the button right next to the input box. 
+        /// </summary>
+        /// <returns></returns>
+        public string HintInputId { get; set; }
+
+
+        public XElement GenerateXmlElement()
+        {
+            var action = new XElement("action");
+            if (!string.IsNullOrEmpty(Arguments))
+                action.Add(new XAttribute("arguments", XmlEncode(Arguments)));
+
+            if (ActivationType.HasValue)
+                action.Add(new XAttribute("activationType", XmlEncode(ActivationType.Value.ToString().ToLowerInvariant())));
+
+            if (!string.IsNullOrEmpty(ImageUri))
+                action.Add(new XAttribute("imageUri", ImageUri));
+            if (!string.IsNullOrEmpty(HintInputId))
+                action.Add(new XAttribute("hint-inputId", HintInputId));
+
+            action.Add(new XAttribute("content", Content));
+
+            return action;
+        }
+
+        protected string XmlEncode(string text)
+        {
+            return System.Security.SecurityElement.Escape(text);
+        }
+    }
+
     public class ToastAudio
     {
         public ToastAudioSource Source { get; set; }
@@ -297,8 +423,76 @@ namespace PushSharp.Windows
             return audio;
         }
     }
+    public class ToastActions
+    {
 
-    public class ToastVisual
+        public List<ToastInput> Inputs { get; set; }
+        public List<ToastAction> Actions { get; set; }
+
+        public XElement GenerateXmlElement()
+        {
+            var actions = new XElement("actions");
+            if (Actions != null)
+            {
+
+                foreach (var input in Inputs)
+                    actions.Add(input.GenerateXmlElement());
+            }
+            if (Actions != null)
+            {
+                foreach (var action in Actions)
+                    actions.Add(action.GenerateXmlElement());
+            }
+            return actions;
+        }
+
+        protected string XmlEncode(string text)
+        {
+            return System.Security.SecurityElement.Escape(text);
+        }
+    }
+    public class Windows10ToastVisual : IToastVisual
+    {
+        public string Language { get; set; }
+        public string BaseUri { get; set; }
+        public bool? AddImageQuery { get; set; }
+
+        public ToastBinding Binding { get; set; }
+
+        public XElement GenerateXmlElement()
+        {
+            var visual = new XElement("visual");
+
+            if (!string.IsNullOrEmpty(Language))
+                visual.Add(new XAttribute("lang", XmlEncode(Language)));
+
+            if (!string.IsNullOrEmpty(BaseUri))
+                visual.Add(new XAttribute("baseUri", XmlEncode(BaseUri)));
+
+            if (AddImageQuery.HasValue)
+                visual.Add(new XAttribute("addImageQuery", AddImageQuery.Value.ToString().ToLowerInvariant()));
+
+            if (Binding != null)
+                visual.Add(Binding.GenerateXmlElement());
+
+            return visual;
+        }
+
+        protected string XmlEncode(string text)
+        {
+            return System.Security.SecurityElement.Escape(text);
+        }
+    }
+    public interface IToastVisual
+    {
+        string Language { get; set; }
+        string BaseUri { get; set; }
+        bool? AddImageQuery { get; set; }
+        ToastBinding Binding { get; set; }
+        XElement GenerateXmlElement();
+    }
+
+    public class ToastVisual : IToastVisual
     {
         public int? Version { get; set; }
         public string Language { get; set; }
@@ -349,6 +543,38 @@ namespace PushSharp.Windows
         }
 
     }
+    public class Windows10ToastNotification : WindowsToastNotification
+    {
+        public ToastActions Actions { get; set; }
+
+        public Windows10ToastNotification()
+            : base()
+        {
+            Visual = new Windows10ToastVisual();
+        }
+        public override string PayloadToString()
+        {
+            var toast = new XElement("toast");
+
+            if (!string.IsNullOrEmpty(this.Launch))
+                toast.Add(new XAttribute("launch", XmlEncode(this.Launch)));
+
+            if (Duration != ToastDuration.Short)
+                toast.Add(new XAttribute("duration", Duration.ToString().ToLowerInvariant()));
+
+            if (Audio != null)
+                toast.Add(Audio.GenerateXmlElement());
+
+            if (Visual != null)
+                toast.Add(Visual.GenerateXmlElement());
+            if (Actions != null)
+            {
+                toast.Add(Actions.GenerateXmlElement());
+            }
+
+            return toast.ToString();
+        }
+    }
 
     public class WindowsToastNotification : WindowsNotification
     {
@@ -367,7 +593,7 @@ namespace PushSharp.Windows
         public ToastDuration Duration { get; set; }
 
         public ToastAudio Audio { get; set; }
-        public ToastVisual Visual { get; set; }
+        public IToastVisual Visual { get; set; }
         public bool SuppressPopup { get; set; }
         public override string PayloadToString()
         {
@@ -470,6 +696,11 @@ namespace PushSharp.Windows
         public string Source { get; set; }
         public string Alt { get; set; }
         public bool? AddImageQuery { get; set; }
+        /// <summary>
+        /// Windows 10 only property for setting image placement
+        /// </summary>
+        public ToastImagePlacement? Placement { get; set; }
+        public ToastImageHintCrop? HintCrop { get; set; }
 
         public XElement GenerateXmlElement(int id)
         {
@@ -481,6 +712,15 @@ namespace PushSharp.Windows
 
             if (AddImageQuery.HasValue)
                 img.Add(new XAttribute("addImageQuery", AddImageQuery.Value.ToString().ToLowerInvariant()));
+
+            if (Placement.HasValue)
+            {
+                img.Add(new XAttribute("placement", Placement.Value.ToString()));
+            }
+            if (HintCrop.HasValue)
+            {
+                img.Add(new XAttribute("hint-crop", HintCrop.Value.ToString()));
+            }
 
             return img;
         }
@@ -689,7 +929,11 @@ namespace PushSharp.Windows
         ToastImageAndText01,
         ToastImageAndText02,
         ToastImageAndText03,
-        ToastImageAndText04
+        ToastImageAndText04,
+        /// <summary>
+        /// Use for windows 10
+        /// </summary>
+        ToastGeneric
     }
 
     public enum BrandingType
@@ -699,4 +943,42 @@ namespace PushSharp.Windows
         Name = 2
     }
 
+    public enum ToastActionInputType
+    {
+        text,
+        selection
+    }
+
+    public enum ToastActivationType
+    {
+        /// <summary>
+        /// Activating the app in the foreground, with an action-specific argument that can be used to navigate to a specific page/context
+        /// </summary>
+        foreground,
+        /// <summary>
+        /// Activating the app’s background task without affecting the user
+        /// </summary>
+        background,
+        /// <summary>
+        /// Activating another app via protocol launch
+        /// </summary>
+        protocol,
+        /// <summary>
+        /// Specify a system action to perform. The current available system actions are "snooze" and "dismiss" scheduled alarm/reminder
+        /// </summary>
+        system
+    }
+
+    public enum ToastImagePlacement
+    {
+        inline,
+        hero,
+        appLogoOverride
+    }
+
+    public enum ToastImageHintCrop
+    {
+        none,
+        circle
+    }
 }

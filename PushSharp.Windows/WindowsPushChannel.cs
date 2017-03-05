@@ -85,7 +85,6 @@ namespace PushSharp.Windows
                     wnsType = "wns/raw";
                     break;
             }
-
             var request = (HttpWebRequest)HttpWebRequest.Create(winNotification.ChannelUri);
             if (winNotification.Type == WindowsNotificationType.DeleteNotification)
                 request.Method = "DELETE";
@@ -154,11 +153,14 @@ namespace PushSharp.Windows
             if (winNotification.RequestForStatus.HasValue)
                 request.Headers.Add("X-WNS-RequestForStatus", winNotification.RequestForStatus.Value.ToString().ToLower());
 
-            if (!string.IsNullOrEmpty(winNotification.NotificationTag))
-                request.Headers.Add("X-WNS-Tag", winNotification.NotificationTag);
+            if (winNotification.Type != WindowsNotificationType.DeleteNotification)
+            {
+                if (!string.IsNullOrEmpty(winNotification.NotificationTag))
+                    request.Headers.Add("X-WNS-Tag", winNotification.NotificationTag);
 
-            if (!string.IsNullOrEmpty(winNotification.NotificationGroup))
-                request.Headers.Add("X-WNS-Group", winNotification.NotificationGroup);
+                if (!string.IsNullOrEmpty(winNotification.NotificationGroup))
+                    request.Headers.Add("X-WNS-Group", winNotification.NotificationGroup);
+            }
 
             if (winNotification.TimeToLive.HasValue)
                 request.Headers.Add("X-WNS-TTL", winNotification.TimeToLive.Value.ToString()); //Time to live in seconds
@@ -306,8 +308,12 @@ namespace PushSharp.Windows
                 callback(this, new SendNotificationResult(status.Notification));
                 return;
             }
-
-            if (status.HttpStatus == HttpStatusCode.NotFound || status.HttpStatus == HttpStatusCode.Gone) //404 or 410
+            else if (status.HttpStatus == HttpStatusCode.Unauthorized)
+            {
+                AccessToken = "";
+                callback(this, new SendNotificationResult(status.Notification, true, new WindowsNotificationSendFailureException(status)));
+            }
+            else if (status.HttpStatus == HttpStatusCode.NotFound || status.HttpStatus == HttpStatusCode.Gone) //404 or 410
             {
                 callback(this, new SendNotificationResult(status.Notification, false, new Exception("Device Subscription Expired"))
                 {
