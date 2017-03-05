@@ -386,7 +386,6 @@ namespace PushSharp.Core
                 if (cancelTokenSource.IsCancellationRequested)
                     break;
 
-                var newCount = 0;
                 bool? destroyed = null;
                 IPushChannel newChannel = default(IPushChannel);
 
@@ -401,11 +400,13 @@ namespace PushSharp.Core
                         {
                             var ex = t.Exception;
                             Log.Error("Channel Worker Failed Task: " + ex.ToString());
+                            channels.Remove(chanWorker);
+                            chanWorker.Dispose();
+                          
                         }, TaskContinuationOptions.OnlyOnFaulted);
 
                         channels.Add(chanWorker);
 
-                        newCount = channels.Count;
                         destroyed = false;
                     }
                     else if (action == ChannelScaleAction.Destroy && channels.Count > 0)
@@ -416,7 +417,6 @@ namespace PushSharp.Core
                         //Stop the channel worker, which will dispose the channel too
                         channelOn.Dispose();
 
-                        newCount = channels.Count;
                         destroyed = true;
                     }
                 }
