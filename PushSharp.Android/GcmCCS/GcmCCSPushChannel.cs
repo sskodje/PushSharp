@@ -37,7 +37,7 @@ namespace PushSharp.Android
         private static int PORT = 5235;
 #endif
         private XmppClientConnection _xmpp;
-        private XmppClientConnection _drainingXmpp;
+        private List<XmppClientConnection> _drainingXmpps;
         private GcmCCSPushChannelSettings _gcmSettings;
         private ConcurrentQueue<INotification> _notificationQueue;
         private Dictionary<string, SendNotificationCallbackDelegate> _callbacks;
@@ -76,7 +76,7 @@ namespace PushSharp.Android
             _callbacks = new Dictionary<string, SendNotificationCallbackDelegate>();
             _pendingNotifications = new Dictionary<string, INotification>();
             _notificationQueue = new ConcurrentQueue<INotification>();
-
+            _drainingXmpps = new List<XmppClientConnection>();
             var mechanism = SaslFactory.GetMechanism("MyPLAINMechanism");
             if (mechanism == null)
             {
@@ -99,11 +99,11 @@ namespace PushSharp.Android
             {
                 _keepConnectedTimer.Interval = 2000;
 
-//#if DEBUG
+                //#if DEBUG
                 //if (i == 10 || i == 30)
                 //    ProcessControlMessage("CONNECTION_DRAINING");
                 //i++;
-//#endif
+                //#endif
 
                 if (_isConnected || _isConnecting)
                     return;
@@ -122,7 +122,7 @@ namespace PushSharp.Android
             try
             {
                 _isConnecting = true;
-                if(_xmpp!= null)
+                if (_xmpp != null)
                     _xmpp.Close();
                 _xmpp = new XmppClientConnection
                 {
@@ -340,8 +340,8 @@ namespace PushSharp.Android
             {
                 _connectionDraining = true;
                 _isConnected = false;
-                _drainingXmpp = _xmpp;
-                _xmpp=null;
+                _drainingXmpps.Add(_xmpp);
+                _xmpp = null;
                 Log.Warning("XMPP Connection draining, reconnecting");
                 Connect();
             }
@@ -358,9 +358,9 @@ namespace PushSharp.Android
         }
         private void xmpp_OnClose(object sender)
         {
-            if (sender == _drainingXmpp)
+            if (_drainingXmpps.Contains(sender as XmppClientConnection))
             {
-                _drainingXmpp = null;
+                _drainingXmpps.Remove(sender as XmppClientConnection);
             }
             else
                 _isConnected = false;
