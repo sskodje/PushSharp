@@ -85,7 +85,7 @@ namespace PushSharp.Android
             }
 
             Connect();
-            _keepConnectedTimer = new System.Timers.Timer(10000);
+            _keepConnectedTimer = new System.Timers.Timer(5000);
             _keepConnectedTimer.Elapsed += _keepConnectedTimer_Elapsed;
             _keepConnectedTimer.AutoReset = false;
             _keepConnectedTimer.Start();
@@ -97,7 +97,7 @@ namespace PushSharp.Android
             timer.Stop();
             try
             {
-                _keepConnectedTimer.Interval = 2000;
+                //_keepConnectedTimer.Interval = 2000;
 
                 //#if DEBUG
                 //if (i == 10 || i == 30)
@@ -119,11 +119,16 @@ namespace PushSharp.Android
 
         private void Connect()
         {
+            if (_isConnecting)
+                return;
             try
             {
                 _isConnecting = true;
                 if (_xmpp != null)
+                {
                     _xmpp.Close();
+                    _xmpp = null;
+                }
                 _xmpp = new XmppClientConnection
                 {
                     UseSSL = true,
@@ -160,8 +165,11 @@ namespace PushSharp.Android
             catch (Exception ex)
             {
                 Log.Error("{0} - {1}", "Error in connecting to Google Gcm CCS", ex);
-                _isConnecting = false;
                 //  throw;
+            }
+            finally
+            {
+                _isConnecting = false;
             }
         }
 
@@ -343,7 +351,7 @@ namespace PushSharp.Android
                 _drainingXmpps.Add(_xmpp);
                 _xmpp = null;
                 Log.Warning("XMPP Connection draining, reconnecting");
-                Connect();
+                //Connect();
             }
             else
             {
