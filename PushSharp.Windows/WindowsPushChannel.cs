@@ -312,6 +312,7 @@ namespace PushSharp.Windows
             {
                 AccessToken = "";
                 callback(this, new SendNotificationResult(status.Notification, true, new WindowsNotificationSendFailureException(status)));
+                return;
             }
             else if (status.HttpStatus == HttpStatusCode.NotFound || status.HttpStatus == HttpStatusCode.Gone) //404 or 410
             {
@@ -324,8 +325,10 @@ namespace PushSharp.Windows
 
                 return;
             }
-
-            callback(this, new SendNotificationResult(status.Notification, false, new WindowsNotificationSendFailureException(status)));
+            else
+            {
+                callback(this, new SendNotificationResult(status.Notification, false, new WindowsNotificationSendFailureException(status)));
+            }
         }
 
         public void Dispose()
