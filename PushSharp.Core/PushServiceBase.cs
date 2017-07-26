@@ -20,7 +20,7 @@ namespace PushSharp.Core
     public delegate void DeviceSubscriptionChangedDelegate(object sender, string oldSubscriptionId, string newSubscriptionId, INotification notification);
     public delegate void GcmMessageReceivedDelegate(object sender, Dictionary<string, object> notificationDic);
 
-    public abstract class PushServiceBase : IPushService
+    public abstract class PushServiceBase : IPushService, IDisposable
     {
         public event ChannelCreatedDelegate OnChannelCreated;
         public event ChannelDestroyedDelegate OnChannelDestroyed;
@@ -89,7 +89,7 @@ namespace PushSharp.Core
             this.PushChannelFactory = pushChannelFactory;
             this.ServiceSettings = serviceSettings ?? new PushServiceSettings();
             this.ChannelSettings = channelSettings;
-            
+
             this.queuedNotifications = new NotificationQueue();
 
             scaleSync = 0;
@@ -184,8 +184,25 @@ namespace PushSharp.Core
 
         public void Dispose()
         {
-            if (!stopping)
-                Stop(false);
+            Dispose(true);
+            GC.SuppressFinalize(this);
+
+        }
+        ~PushServiceBase()
+        {
+            Dispose(false);
+        }
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // free managed resources  
+                if (!stopping)
+                    Stop(false);
+                cancelTokenSource.Dispose();
+                timerCheckScale.Dispose();
+                waitQueuedNotifications.Dispose();
+            }
         }
 
         private void CheckScale(object state = null)
@@ -402,7 +419,7 @@ namespace PushSharp.Core
                             Log.Error("Channel Worker Failed Task: " + ex.ToString());
                             channels.Remove(chanWorker);
                             chanWorker.Dispose();
-                          
+
                         }, TaskContinuationOptions.OnlyOnFaulted);
 
                         channels.Add(chanWorker);
