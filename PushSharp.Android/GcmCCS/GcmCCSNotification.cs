@@ -9,17 +9,6 @@ namespace PushSharp.Android
 {
     public class GcmCCSNotification : Notification
     {
-        //public static GcmCCSNotification ForSingleResult(GcmCCSMessageTransportResponse response, int resultIndex)
-        //{
-        //    var result = new GcmCCSNotification();
-        //    result.Tag = response.Message.Tag;
-        //    result.RegistrationIds.Add(response.Message.RegistrationIds[resultIndex]);
-        //    result.CollapseKey = response.Message.CollapseKey;
-        //    result.JsonData = response.Message.JsonData;
-        //    result.DelayWhileIdle = response.Message.DelayWhileIdle;
-        //    return result;
-        //}
-
         public static GcmCCSNotification ForSingleRegistrationId(GcmCCSNotification msg, string registrationId)
         {
             var result = new GcmCCSNotification(msg.MessageID);
@@ -27,7 +16,7 @@ namespace PushSharp.Android
             result.To = registrationId;
             result.CollapseKey = msg.CollapseKey;
             result.JsonData = msg.JsonData;
-            result.DelayWhileIdle = msg.DelayWhileIdle;
+            result.Priority = msg.Priority;
             return result;
         }
 
@@ -36,14 +25,14 @@ namespace PushSharp.Android
             this.MessageID = messageID;
             this.CollapseKey = string.Empty;
             this.JsonData = string.Empty;
-            this.DelayWhileIdle = null;
+            this.Priority = "normal";
         }
         public GcmCCSNotification()
         {
             this.MessageID = Guid.NewGuid().ToString();
             this.CollapseKey = string.Empty;
             this.JsonData = string.Empty;
-            this.DelayWhileIdle = null;
+            this.Priority = "normal";
         }
         public string To { get; set; }
 
@@ -52,6 +41,15 @@ namespace PushSharp.Android
         /// Only the latest message with the same collapse key will be delivered
         /// </summary>
         public string CollapseKey
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Priority can be high or normal. High is always sendt, even to dozed clients.
+        /// </summary>
+        public string Priority
         {
             get;
             set;
@@ -70,15 +68,6 @@ namespace PushSharp.Android
         /// JSON Payload to be sent in the message
         /// </summary>
         public string JsonData
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// If true, GCM will only be delivered once the device's screen is on
-        /// </summary>
-        public bool? DelayWhileIdle
         {
             get;
             set;
@@ -131,8 +120,7 @@ namespace PushSharp.Android
 
             json["message_id"] = this.MessageID;
 
-            if (this.DelayWhileIdle.HasValue)
-                json["delay_while_idle"] = this.DelayWhileIdle.Value;
+            json["priority"] = Priority;
 
             if (DryRun.HasValue && DryRun.Value)
                 json["dry_run"] = true;

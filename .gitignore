@@ -30,3 +30,4 @@ PushSharp.Sample.LocalTesting/
 
 node_modules/
 .idea/
+/.vs/PushSharp/v15/Server/sqlite3

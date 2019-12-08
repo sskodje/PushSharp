@@ -30,10 +30,10 @@ namespace PushSharp.Android
         private static String GCM_NAMESPACE = "google:mobile:data";
         private static String SERVER_NAME = "gcm.googleapis.com";
 #if DEBUG
-        private static String SERVER_URL = "gcm-preprod.googleapis.com";
+        private static String SERVER_URL = "fcm-xmpp.googleapis.com";
         private static int PORT = 5236;
 #else
-        private static String SERVER_URL = "gcm-xmpp.googleapis.com";
+        private static String SERVER_URL = "fcm-xmpp.googleapis.com";
         private static int PORT = 5235;
 #endif
         private XmppClientConnection _xmpp;

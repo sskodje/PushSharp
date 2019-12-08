@@ -20,18 +20,22 @@ namespace PushSharp
 			return n;
 		}
 
-        public static GcmCCSNotification WithDelayWhileIdle(this GcmCCSNotification n, bool delayWhileIdle = false)
-		{
-			n.DelayWhileIdle = delayWhileIdle;
-			return n;
-		}
-
         public static GcmCCSNotification WithTimeToLive(this GcmCCSNotification n, int ttlSeconds)
         {
             n.TimeToLive = ttlSeconds;
             return n;
         }
 
+        public static GcmCCSNotification WithHighPriority(this GcmCCSNotification n)
+        {
+            n.Priority = "high";
+            return n;
+        }
+        public static GcmCCSNotification WithNormalPriority(this GcmCCSNotification n)
+        {
+            n.Priority = "normal";
+            return n;
+        }
         public static GcmCCSNotification WithDeliveryReceiptRequest(this GcmCCSNotification n,bool requestDeliverRecipt)
         {
             n.RequestDeliveryReceipt = requestDeliverRecipt;
