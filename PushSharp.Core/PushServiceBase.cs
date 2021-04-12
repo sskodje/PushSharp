@@ -146,7 +146,7 @@ namespace PushSharp.Core
             }
         }
 
-        public void Stop(bool waitForQueueToFinish = true)
+        public void Stop(CancellationToken token, bool waitForQueueToFinish = true)
         {
             stopping = true;
             var started = DateTime.UtcNow;
@@ -156,7 +156,14 @@ namespace PushSharp.Core
                 Log.Info("Waiting for Queue to Finish");
 
                 while (this.queuedNotifications.Count > 0 || Interlocked.Read(ref trackedNotificationCount) > 0)
-                    Thread.Sleep(100);
+                {
+                    if (token.IsCancellationRequested)
+                    {
+                        break;
+                    }
+                    Log.Debug("{0} queued notifications, {1} tracked notifications remaining.", this.queuedNotifications.Count, Interlocked.Read(ref trackedNotificationCount));
+                    Thread.Sleep(500);
+                }
 
                 Log.Info("Queue Emptied.");
             }
@@ -198,7 +205,7 @@ namespace PushSharp.Core
             {
                 // free managed resources  
                 if (!stopping)
-                    Stop(false);
+                    Stop(CancellationToken.None,false);
                 cancelTokenSource.Dispose();
                 timerCheckScale.Dispose();
                 waitQueuedNotifications.Dispose();

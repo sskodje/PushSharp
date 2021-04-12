@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace PushSharp.Core
 {
@@ -31,7 +32,7 @@ namespace PushSharp.Core
         IPushChannelSettings ChannelSettings { get; }
         bool IsStopping { get; }
         void QueueNotification(INotification notification);
-        void Stop(bool waitForQueueToFinish = true);
+        void Stop(CancellationToken token, bool waitForQueueToFinish = true);
     }
 
     public interface IPushChannel : IDisposable
@@ -145,14 +146,14 @@ namespace PushSharp.Core
         /// Stops all services that have been registered with the broker
         /// </summary>
         /// <param name="waitForQueuesToFinish">If set to <c>true</c> wait for queues to finish.</param>
-        void StopAllServices(bool waitForQueuesToFinish = true);
+        void StopAllServices(CancellationToken token, bool waitForQueuesToFinish = true);
 
         /// <summary>
         /// Stops and removes all registered services for the given notification type
         /// </summary>
         /// <param name="waitForQueuesToFinish">If set to <c>true</c> waits for the queues to be drained before returning.</param>
         /// <typeparam name="TNotification">Notification Type</typeparam>
-        void StopAllServices<TNotification>(bool waitForQueuesToFinish = true);
+        void StopAllServices<TNotification>(CancellationToken token, bool waitForQueuesToFinish = true);
 
         /// <summary>
         /// Stops and removes all registered services for the given application identifier and notification type
@@ -160,13 +161,13 @@ namespace PushSharp.Core
         /// <param name="applicationId">Application identifier.</param>
         /// <param name="waitForQueuesToFinish">If set to <c>true</c> waits for queues to be drained before returning.</param>
         /// <typeparam name="TNotification">The 1st type parameter.</typeparam>
-        void StopAllServices<TNotification>(string applicationId, bool waitForQueuesToFinish = true);
+        void StopAllServices<TNotification>(string applicationId, CancellationToken token, bool waitForQueuesToFinish = true);
 
         /// <summary>
         /// Stops and removes all registered services for the given application identifier
         /// </summary>
         /// <param name="applicationId">Application identifier.</param>
         /// <param name="waitForQueuesToFinish">If set to <c>true</c> waits for queues to be drained before returning.</param>
-        void StopAllServices(string applicationId, bool waitForQueuesToFinish = true);
+        void StopAllServices(string applicationId, CancellationToken token, bool waitForQueuesToFinish = true);
     }
 }
