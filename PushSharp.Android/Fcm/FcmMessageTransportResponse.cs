@@ -15,7 +15,6 @@ namespace PushSharp.Android
 			this.NumberOfFailures = 0;
 			this.NumberOfCanonicalIds = 0;
 			this.Message = null;
-			this.Results = new List<FcmMessageResult>();
 			this.ResponseCode = FcmMessageTransportResponseCode.Ok;
 		}
 
@@ -34,9 +33,6 @@ namespace PushSharp.Android
 		[JsonIgnore]
 		public FcmNotification Message { get; set; }
 
-		[JsonProperty("results")]
-		public List<FcmMessageResult> Results { get; set; }
-
 		[JsonIgnore]
 		public FcmMessageTransportResponseCode ResponseCode { get; set; }
 	}
@@ -45,6 +41,7 @@ namespace PushSharp.Android
     {
         Ok,
         Error,
+		NotFound,
         BadRequest,
         ServiceUnavailable,
         InvalidAuthToken,

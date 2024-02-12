@@ -26,7 +26,7 @@ namespace PushSharp.Android
         {
             var result = new FcmNotification();
             result.Tag = msg.Tag;
-            result.RegistrationIds.Add(registrationId);
+            result.To = registrationId;
             result.CollapseKey = msg.CollapseKey;
             result.JsonData = msg.JsonData;
             result.DelayWhileIdle = msg.DelayWhileIdle;
@@ -41,14 +41,6 @@ namespace PushSharp.Android
             this.Priority = "Normal";
         }
 
-        /// <summary>
-        /// Registration ID of the Device(s).  Maximum of 1000 registration Id's per notification.
-        /// </summary>
-        public List<string> RegistrationIds
-        {
-            get;
-            set;
-        }
 
         /// <summary>
         /// Priority can be high or normal. High is always sendt, even to dozed clients.
