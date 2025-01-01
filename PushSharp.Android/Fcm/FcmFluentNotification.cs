@@ -20,12 +20,6 @@ namespace PushSharp
             return n;
         }
 
-        public static FcmNotification WithDelayWhileIdle(this FcmNotification n, bool delayWhileIdle = false)
-        {
-            n.DelayWhileIdle = delayWhileIdle;
-            return n;
-        }
-
         public static FcmNotification WithTimeToLive(this FcmNotification n, int ttlSeconds)
         {
             n.TimeToLive = ttlSeconds;
@@ -75,12 +69,6 @@ namespace PushSharp
         public static FcmNotification WithTag(this FcmNotification n, object tag)
         {
             n.Tag = tag;
-            return n;
-        }
-
-        public static FcmNotification WithDryRun(this FcmNotification n)
-        {
-            n.DryRun = true;
             return n;
         }
     }

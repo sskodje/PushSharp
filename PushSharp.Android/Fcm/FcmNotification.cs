@@ -18,7 +18,6 @@ namespace PushSharp.Android
             result.To = response.Message.To;
             result.CollapseKey = response.Message.CollapseKey;
             result.JsonData = response.Message.JsonData;
-            result.DelayWhileIdle = response.Message.DelayWhileIdle;
             return result;
         }
 
@@ -29,7 +28,6 @@ namespace PushSharp.Android
             result.To = registrationId;
             result.CollapseKey = msg.CollapseKey;
             result.JsonData = msg.JsonData;
-            result.DelayWhileIdle = msg.DelayWhileIdle;
             return result;
         }
 
@@ -37,7 +35,6 @@ namespace PushSharp.Android
         {
             this.CollapseKey = string.Empty;
             this.JsonData = string.Empty;
-            this.DelayWhileIdle = null;
             this.Priority = "Normal";
         }
 
@@ -70,15 +67,6 @@ namespace PushSharp.Android
         }
 
         /// <summary>
-        /// If true, GCM will only be delivered once the device's screen is on
-        /// </summary>
-        public bool? DelayWhileIdle
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
         /// Time in seconds that a message should be kept on the server if the device is offline.  Default is 4 weeks.
         /// </summary>
         public int? TimeToLive
@@ -87,51 +75,34 @@ namespace PushSharp.Android
             set;
         }
 
-        /// <summary>
-        /// If true, dry_run attribute will be sent in payload causing the notification not to be actually sent, but the result returned simulating the message
-        /// </summary>
-        public bool? DryRun
-        {
-            get;
-            set;
-        }
-
         public string To { get; set; }
 
-        /// <summary>
-        /// A string that maps a single user to multiple registration IDs associated with that user. This allows a 3rd-party server to send a single message to multiple app instances (typically on multiple devices) owned by a single user.
-        /// </summary>
-        public string NotificationKey { get; set; }
-
-        /// <summary>
-        /// A string containing the package name of your application. When set, messages will only be sent to registration IDs that match the package name
-        /// </summary>
-        public string TargetPackageName { get; set; }
 
 
-        internal string GetJson()
+
+        internal virtual string GetJson()
         {
             var messageJson = new JObject();
 
-            //if (!string.IsNullOrEmpty(this.CollapseKey))
-            //    messageJson["collapse_key"] = this.CollapseKey;
-
-            //if (this.TimeToLive.HasValue)
-            //    messageJson["time_to_live"] = this.TimeToLive.Value;
-
-            //if (this.RequestDeliveryReceipt.HasValue)
-            //    json["delivery_receipt_requested"] = this.RequestDeliveryReceipt.Value;
-
-            //json["registration_ids"] = new JArray(this.RegistrationIds.ToArray());
             messageJson["token"] = this.To;
 
-            //json["message_id"] = this.MessageID;
             var androidJson = new JObject();
             androidJson["priority"] = Priority;
+            if (!string.IsNullOrEmpty(this.CollapseKey))
+                androidJson["collapse_key"] = this.CollapseKey;
+            if (this.TimeToLive.HasValue)
+                androidJson["ttl"] = $"{this.TimeToLive.Value}s";
             messageJson["android"] = androidJson;
-            //if (DryRun.HasValue && DryRun.Value)
-            //    messageJson["dry_run"] = true;
 
+            var webPushJson = new JObject();
+            var headersJson = new JObject();
+            headersJson["Urgency"] = Priority;
+            if (this.TimeToLive.HasValue)
+                headersJson["TTL"] = this.TimeToLive.Value.ToString();
+            if (!string.IsNullOrEmpty(this.CollapseKey))
+                headersJson["Token"] = this.CollapseKey;
+            webPushJson["headers"] = headersJson;
+            messageJson["webpush"] = webPushJson;
             if (!string.IsNullOrEmpty(this.JsonData))
             {
                 var jsonData = JObject.Parse(this.JsonData);
@@ -139,13 +110,6 @@ namespace PushSharp.Android
                 if (jsonData != null)
                     messageJson["data"] = jsonData;
             }
-
-            //if (!string.IsNullOrWhiteSpace(this.NotificationKey))
-            //    messageJson["notification_key"] = NotificationKey;
-
-            //if (!string.IsNullOrWhiteSpace(this.TargetPackageName))
-            //    messageJson["restricted_package_name"] = TargetPackageName;
-
 
             JObject json = new JObject();
             json["message"] = messageJson;
